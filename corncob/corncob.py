@@ -36,11 +36,6 @@ class Corncob():
         self.param_names_disp = X_star.columns
         self.phi_init = phi_init
         
-        
-        endog = pd.DataFrame([
-            count, # Success
-            total - count, # Failures
-        ]).T
         # Inits
         self.start_params = None
         # Final params set to none until fit
@@ -136,7 +131,7 @@ class Corncob():
         tg5 = polygamma(1, 1/gam)
         tg6 = polygamma(1, M + 1/gam)
         dldmu2 = (tg1 - tg2 - tg3 + tg4)/np.power(gam, 2)
-        dldgam2 = (2 * gam * dg1 + tg5 - 2 * gam * dg2 - tg6 + np.power(mu - 1, 2) * tg1 - 2 * gam * (mu - 1) * dg3 - np.power(mu, 2) * tg3 + np.power(mu, 2) * tg4 + np.power(mu - 1, 2) * (-tg2) + 2 * gam * (mu - 1) * dg4 - 2 * gam * mu * dg5 + 2 * gam * mu * dg6)/np.power(gam, 4)
+        dldgam2 = (2 * gam * dg1 + tg5 - 2 * gam * dg2 - tg6 + np.power(mu - 1, 2) * tg1 - 2 * gam * (mu - 1) * dg3 - np.power(mu, 2) * tg3 + np.power(mu, 2) * tg4 + np.power(mu - 1, 2) * (-1*tg2) + 2 * gam * (mu - 1) * dg4 - 2 * gam * mu * dg5 + 2 * gam * mu * dg6)/np.power(gam, 4)
 
         dldmdg = (gam * (dg3 - dg4 + dg5 - dg6) + (mu - 1) * (tg2 - tg1) + mu * (tg3 - tg4))/np.power(gam, 3)
         dpdb = self.X.T * (mu * (1 - mu) )
