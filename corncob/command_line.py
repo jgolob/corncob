@@ -32,7 +32,15 @@ def run_corncob(params):
             X=X,
             X_star=X_star
         )
-        e_m = cc.fit()
+        try:
+            e_m = cc.fit()
+        except:
+            return (
+                e,
+                None,
+                None,
+                None
+            )
         (abd_res, disp_res) = cc.waltdt()
         return(
             e,
@@ -151,6 +159,8 @@ def main():
     )
     
     for (element, converged, abd_res, disp_res) in cc_results:
+        if converged is None:
+            continue
         out_df.loc[element, 'converged'] = converged
         for c in X.columns:
             for m_o in ['Estimate', 'se', 't', 'p']:
