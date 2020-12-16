@@ -2,13 +2,28 @@
 import argparse
 import csv
 import pandas as pd
+from multiprocessing import Pool
+import os
+import logging
 from corncob import Corncob
+# Set up logging
+logFormatter = logging.Formatter(
+    '%(asctime)s %(levelname)-8s [corncob] %(message)s'
+)
+rootLogger = logging.getLogger()
+rootLogger.setLevel(logging.INFO)
+
+# Write logs to STDOUT
+consoleHandler = logging.StreamHandler()
+consoleHandler.setFormatter(logFormatter)
+rootLogger.addHandler(consoleHandler)
 
 description="""
 CORNCOB: beta-binomial based testing of count data.\n
 Based on, Martin BD, Witten D, Willis AD. Modeling microbial abundances and dysbiosis with beta-binomial regression. Ann Appl Stat. 2020 Mar;14(1):94-115.
 """
-def run_corncob(total_counts, e_row, specimens, X, X_star):
+def run_corncob(params):
+        (total_counts, e_row, specimens, X, X_star) = params
         e = e_row[0]
         counts = pd.Series([int(c) for c in e_row[1:]], index=specimens)
         cc = Corncob(
@@ -53,9 +68,15 @@ def main():
         required=True,
         type=argparse.FileType('wt')
     )
+    parser.add_argument(
+        '-T', '--threads',
+        help='Number of threads to use. Default is os.cpu_count()',
+        type=int,
+        default=os.cpu_count()
+    )
 
     args = parser.parse_args()
-
+    logging.info("Loading and verifying count header")
     # Verify count file
     count_reader = csv.reader(args.counts_csv)
     header = next(count_reader)
@@ -69,6 +90,7 @@ def main():
     # Implicit else
     total_counts = pd.Series([int(c) for c in total_count_r[1:]], index=specimens)
 
+    logging.info("Loading and verifying abundance covariates")
     # Load or build exog matrix
     if args.covariates_abund_csv is None:
         # Build it!
@@ -81,7 +103,7 @@ def main():
         # Make order match that in counts. Trim if neccesary
         X = X.loc[specimens]
         X['intercept'] = 1
-
+    logging.info("Loading and verifying dispersion covariates")
     # Load or build exog matrix
     if args.covariates_disp_csv is None:
         # Build it!
@@ -96,17 +118,23 @@ def main():
         X_star['intercept'] = 1
 
     # OK! Now run corncob!
-    cc_results = [
-        run_corncob(
-            total_counts,
-            e_row,
-            specimens,
-            X,
-            X_star,
-        )
-        for e_row in count_reader
-    ]
+    logging.info("Model fitting (this can be time consuming)")
 
+    with Pool(args.threads) as cc_pool:
+        cc_results = cc_pool.map(
+            run_corncob,
+            [
+                (
+                    total_counts,
+                    e_row,
+                    specimens,
+                    X,
+                    X_star,
+                )
+                for e_row in count_reader
+            ]        
+        )
+    logging.info("Transforming outputs")
     # Reformat into a wide format for output
     out_df = pd.DataFrame(
         columns=[
@@ -132,6 +160,7 @@ def main():
                 out_df.loc[element, 'disp__{}__{}'.format(c, m_o)] = disp_res.loc[c, m_o]
 
     out_df.to_csv(args.output)
+
     
 if __name__ == '__main__':
     main()
