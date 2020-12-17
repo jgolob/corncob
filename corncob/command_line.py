@@ -23,9 +23,10 @@ CORNCOB: beta-binomial based testing of count data.\n
 Based on, Martin BD, Witten D, Willis AD. Modeling microbial abundances and dysbiosis with beta-binomial regression. Ann Appl Stat. 2020 Mar;14(1):94-115.
 """
 def run_corncob(params):
-        (total_counts, e_row, specimens, X, X_star) = params
+        (total_counts, e_row, read_specimens, specimens, X, X_star) = params
         e = e_row[0]
-        counts = pd.Series([int(c) for c in e_row[1:]], index=specimens)
+        # Label, reorder and slice counts
+        counts = pd.Series([int(c) for c in e_row[1:]], index=read_specimens).loc[specimens]
         cc = Corncob(
             total=total_counts,
             count=counts,
@@ -88,42 +89,52 @@ def main():
     # Verify count file
     count_reader = csv.reader(args.counts_csv)
     header = next(count_reader)
-    specimens = header[1:]
-    if len(specimens) != len(set(specimens)):
+    read_specimens = header[1:]
+    if len(read_specimens) != len(set(read_specimens)):
         raise ValueError("Specimen labels in count are not unique!")
-    # Implicit else specimens are unique
+    # Implicit else read_specimens are unique
     total_count_r = next(count_reader)
     if total_count_r[0].strip() != 'total':
         raise ValueError("First count row is not total count per specimen")
     # Implicit else
-    total_counts = pd.Series([int(c) for c in total_count_r[1:]], index=specimens)
+    total_counts = pd.Series([int(c) for c in total_count_r[1:]], index=read_specimens)
 
     logging.info("Loading and verifying abundance covariates")
-    # Load or build exog matrix
+
+    # Abundance covariates
     if args.covariates_abund_csv is None:
         # Build it!
-        X = pd.DataFrame(index=specimens)
+        X = pd.DataFrame(index=read_specimens)
         X['intercept'] = 1
         
     else:
         # Load it
         X = pd.read_csv(args.covariates_abund_csv, index_col=0)
-        # Make order match that in counts. Trim if neccesary
-        X = X.loc[specimens]
         X['intercept'] = 1
+
+    # Dispersion covariates
     logging.info("Loading and verifying dispersion covariates")
     # Load or build exog matrix
     if args.covariates_disp_csv is None:
         # Build it!
-        X_star = pd.DataFrame(index=specimens)
+        X_star = pd.DataFrame(index=read_specimens)
         X_star['intercept'] = 1
         
     else:
         # Load it
         X_star = pd.read_csv(args.covariates_disp_csv, index_col=0)
-        # Make order match that in counts. Trim if neccesary
-        X_star = X_star.loc[specimens]
         X_star['intercept'] = 1
+
+    # Reorient and slice down to the inner join / overlapping set of specimens
+    specimens = sorted(set(read_specimens).intersection(
+        set(X.index)
+    ).intersection(
+        set(X_star.index)
+    ))
+    # Make covariate order match that of the common. Trim if neccesary
+    X = X.loc[specimens]
+    X_star = X_star.loc[specimens]
+
 
     # OK! Now run corncob!
     logging.info("Model fitting (this can be time consuming)")
@@ -135,6 +146,7 @@ def main():
                 (
                     total_counts,
                     e_row,
+                    read_specimens,
                     specimens,
                     X,
                     X_star,
