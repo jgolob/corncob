@@ -51,3 +51,14 @@ The third block is
 - `p`: The p-value (derived from the t-value). Two tailed.
 
 ## Why use beta-binomial regression?
+Thanks to next-generation sequencing, biological scientists have an opportunity to make discoveries with count data. Whether RNAseq, ATAC-seq, microbiome 16S rRNA amplicons, or shotgun metagenomes, often the data we wish to compare to out outcomes are ultimately a big table of number of reads assigned in each specimen to a gene, locus, microbe, etc. 
+
+While superficially appearing like any other continuous measure (particularly when normalized to relative abundance), these counts-of-reads are tricky. It is typical that the total number of reads to vary a lot from specimen-to-specimen. Even modest noise in the most predominant features (e.g. OTU) can wreak havoc on the precision of true featues further into the tail. Each read-count is not _really_ independent; thre are likely all sorts of latent covariance we are barely beginning to understand. Compounding all this is that most of these read-count matricies are sparse; most of the values are zeros.
+
+*An ideal regression method for read-count data would:*
+- Be fine with zeros, even a _lot_ of zeros, and not neet to "add one to each count" to work.
+- Recognize read-counts are likely correlated with one another in ways that we do not fully understand
+- Take advantage of the variable total read depth (total reads) per specimen.
+- Consider how our covariates (outcomes) relate not just to the relative abundance but also the variability (dispersion) of a given feature's read count.
+
+The adaptation of *beta-binomial* models by [Martin et al](https://projecteuclid.org/euclid.aoas/1587002666) fullfils these criteria.
