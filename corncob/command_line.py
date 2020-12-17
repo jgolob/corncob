@@ -6,6 +6,7 @@ from multiprocessing import Pool
 import os
 import logging
 from corncob import Corncob
+import sys
 # Set up logging
 logFormatter = logging.Formatter(
     '%(asctime)s %(levelname)-8s [corncob] %(message)s'
@@ -57,24 +58,24 @@ def main():
     )
     parser.add_argument(
         '-C', '--counts_csv',
-        help='CSV file containing the count data. Must have first row with total count, then each row after the counts for each specimen',
-        required=True,
+        help='CSV file containing the count data. Must have first row with total count, then each row after the counts for each specimen. Default: stdin',
+        default=sys.stdin,
         type=argparse.FileType('rt'),
     )
     parser.add_argument(
-        '-VA', '--covariates_abund_csv',
+        '-X', '--covariates_abund_csv',
         help='CSV file containing the covariates for abundance. Intercept column automatically added',
         required=False,
     )
     parser.add_argument(
-        '-VD', '--covariates_disp_csv',
+        '-X_star', '--covariates_disp_csv',
         help='CSV file containing the covariates for dispersion. Intercept column automatically added',
         required=False,
     )
     parser.add_argument(
         '-O', '--output',
-        help='Where to place the results in CSV format',
-        required=True,
+        help='Where to place the results in CSV format. Default is stdout',
+        default=sys.stdout,
         type=argparse.FileType('wt')
     )
     parser.add_argument(
@@ -97,12 +98,12 @@ def main():
     if total_count_r[0].strip() != 'total':
         raise ValueError("First count row is not total count per specimen")
     # Implicit else
-    total_counts = pd.Series([int(c) for c in total_count_r[1:]], index=read_specimens)
+    total_counts_input = pd.Series([int(c) for c in total_count_r[1:]], index=read_specimens)
 
     logging.info("Loading and verifying abundance covariates")
 
     # Abundance covariates
-    if args.covariates_abund_csv is None:
+    if (args.covariates_abund_csv is None):
         # Build it!
         X = pd.DataFrame(index=read_specimens)
         X['intercept'] = 1
@@ -115,7 +116,7 @@ def main():
     # Dispersion covariates
     logging.info("Loading and verifying dispersion covariates")
     # Load or build exog matrix
-    if args.covariates_disp_csv is None:
+    if (args.covariates_disp_csv is None):
         # Build it!
         X_star = pd.DataFrame(index=read_specimens)
         X_star['intercept'] = 1
@@ -131,9 +132,15 @@ def main():
     ).intersection(
         set(X_star.index)
     ))
+
+    if len(specimens) == 0:
+        "No overlapping specimens!"
+        return -1
+
     # Make covariate order match that of the common. Trim if neccesary
     X = X.loc[specimens]
     X_star = X_star.loc[specimens]
+    total_counts = total_counts_input.loc[specimens]
 
 
     # OK! Now run corncob!
