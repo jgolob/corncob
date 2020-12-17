@@ -170,6 +170,7 @@ def main():
                 out_df.loc[element, 'disp__{}__{}'.format(c, m_o)] = disp_res.loc[c, m_o]
 
     out_df.to_csv(args.output)
+    logging.info("Done!")
 
     
 if __name__ == '__main__':
