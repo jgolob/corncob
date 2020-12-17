@@ -35,3 +35,19 @@ cov1,cov2,cov3,...
 This is an exogenous matrix for the covariates. Each column corresponds to one covariate to be fitted. An intercept column is always added. Any empty cells will be replaced with zeros. If not provided, only an intercept will be used for regression.
 
 One can provide distinct covariate tables for abundance (`-VA`) and dispersion (`-VD`)
+
+## Output
+A CSV file with a header. The header has the various attributes, in the rough format of 
+`element_id,converged,abd__cov_name__Estimate,abd__cov_name__se,abd__cov_name__t,abd__cov_name__p,...`
+
+The first block indicates if this is for abundance (`abd`) or dispersion (`disp`).
+
+The second block in the same of the covariate, taken directly from the input files.
+
+The third block is 
+- `Estimate`: The fitted estimated coefficent for that covariate for abundance or dispersion
+- `se`: The standard error of the estimate
+- `t`: The t-value, derived via the Wald statistic
+- `p`: The p-value (derived from the t-value). Two tailed.
+
+## Why use beta-binomial regression?
