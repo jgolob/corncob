@@ -6,7 +6,7 @@ This is a beta-binomal model-based approach for hypothesis testing of count data
 
 The method was first developed by [Dr. Willis](http://statisticaldiversitylab.com/team) and her mentee [Bryan D Martin](https://bryandmartin.github.io/), and is fully described in [Modeling microbial abundances and dysbiosis with beta-binomial regression](https://projecteuclid.org/euclid.aoas/1587002666).
 
-CORNCOB stands for: *CO*unt *R*egressio*N* for *C*orrelated *O*bservations with the *B*eta-binomial
+CORNCOB stands for: **CO**unt **R**egressio**N** for **C**orrelated **O**bservations with the **B**eta-binomial
 
 Why you should use this technique is detailed below.
 
